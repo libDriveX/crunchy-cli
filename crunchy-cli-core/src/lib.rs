@@ -12,7 +12,7 @@ use std::{env, fs};
 mod cli;
 mod utils;
 
-pub use cli::{archive::Archive, download::Download, login::Login, search::Search};
+pub use cli::{archive::Archive, download::Download, login::Login, query::Query};
 
 #[async_trait::async_trait(?Send)]
 trait Execute {
@@ -59,7 +59,7 @@ enum Command {
     Archive(Archive),
     Download(Download),
     Login(Login),
-    Search(Search),
+    Query(Query),
 }
 
 #[derive(Debug, Parser)]
@@ -165,7 +165,7 @@ pub async fn cli_entrypoint() {
                 execute_executor(login, ctx).await
             }
         }
-        Command::Search(search) => execute_executor(search, ctx).await,
+        Command::Query(query) => execute_executor(query, ctx).await,
     };
 }
 

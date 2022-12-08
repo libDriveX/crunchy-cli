@@ -1,6 +1,6 @@
 use crate::utils::context::Context;
 use crate::Execute;
-use crunchyroll_rs::search::{QueryOptions, QueryType};
+use crunchyroll_rs::search::QueryOptions;
 use crunchyroll_rs::MediaCollection;
 use log::warn;
 use serde::Serialize;
@@ -8,19 +8,19 @@ use serde_json::Value;
 use crate::utils::parse::parse_url;
 
 #[derive(Clone, Debug)]
-pub enum SearchType {
+pub enum QueryType {
     Series,
     Episode,
     Movie,
 }
 
-impl SearchType {
-    fn parse(s: &str) -> Result<SearchType, String> {
+impl QueryType {
+    fn parse(s: &str) -> Result<QueryType, String> {
         Ok(match s.to_lowercase().as_str() {
-            "series" => SearchType::Series,
-            "episode" | "episodes" => SearchType::Episode,
-            "movie" | "movies" => SearchType::Movie,
-            _ => return Err(format!("'{}' is not a valid search type", s)),
+            "series" => QueryType::Series,
+            "episode" | "episodes" => QueryType::Episode,
+            "movie" | "movies" => QueryType::Movie,
+            _ => return Err(format!("'{}' is not a valid query type", s)),
         })
     }
 }
@@ -44,9 +44,9 @@ impl OutputFormat {
 }
 
 #[derive(Debug, clap::Parser)]
-#[clap(about = "Get information by a word search")]
+#[clap(about = "Get information by a word query")]
 #[command(arg_required_else_help(true))]
-pub struct Search {
+pub struct Query {
     #[arg(help = "Number of results to fetch")]
     #[arg(short = 'n', long, default_value_t = 10)]
     limit: u32,
@@ -54,8 +54,8 @@ pub struct Search {
     Available options are: 'series', 'episodes', 'movies'. \
     None means mixed")]
     #[arg(long)]
-    #[arg(value_parser = SearchType::parse)]
-    search_type: Option<SearchType>,
+    #[arg(value_parser = QueryType::parse)]
+    query_type: Option<QueryType>,
 
     #[arg(long, default_value_t = false)]
     id: bool,
@@ -100,17 +100,17 @@ struct FormattedOutput {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Execute for Search {
+impl Execute for Query {
     async fn execute(self, ctx: Context) -> anyhow::Result<()> {
         let results = if crunchyroll_rs::parse_url(self.input.clone()).is_some() {
             vec![parse_url(&ctx.crunchy, self.input.clone(), true).await?.0]
         } else {
             let mut query_options = QueryOptions::default().limit(self.limit);
-            if let Some(search_type) = &self.search_type {
-                query_options = match search_type {
-                    &SearchType::Series => query_options.result_type(QueryType::Series),
-                    &SearchType::Episode => query_options.result_type(QueryType::Episode),
-                    &SearchType::Movie => query_options.result_type(QueryType::MovieListing),
+            if let Some(query_type) = &self.query_type {
+                query_options = match query_type {
+                    &QueryType::Series => query_options.result_type(crunchyroll_rs::search::QueryType::Series),
+                    &QueryType::Episode => query_options.result_type(crunchyroll_rs::search::QueryType::Episode),
+                    &QueryType::Movie => query_options.result_type(crunchyroll_rs::search::QueryType::MovieListing),
                 }
             }
             let query = ctx.crunchy.query(&self.input, query_options).await?;
@@ -223,15 +223,15 @@ impl Execute for Search {
     }
 }
 
-fn convert_to_formatted_outputs(search: &Search, outputs: Vec<Output>) -> Vec<FormattedOutput> {
+fn convert_to_formatted_outputs(query: &Query, outputs: Vec<Output>) -> Vec<FormattedOutput> {
     let mut format_outputs = vec![];
     for output in outputs {
         format_outputs.push(FormattedOutput {
-            id: search.id.then_some(output.id),
-            url: search.url.then_some(output.url),
-            type_: search.type_.then_some(output.type_),
-            title: search.title.then_some(output.title),
-            description: search.description.then_some(output.description),
+            id: query.id.then_some(output.id),
+            url: query.url.then_some(output.url),
+            type_: query.type_.then_some(output.type_),
+            title: query.title.then_some(output.title),
+            description: query.description.then_some(output.description),
         })
     }
     format_outputs

@@ -113,7 +113,12 @@ impl Execute for Archive {
     fn pre_check(&self) -> Result<()> {
         if !has_ffmpeg() {
             bail!("FFmpeg is needed to run this command")
-        } else if PathBuf::from(&self.output).extension().unwrap_or_default().to_string_lossy() != "mkv" {
+        } else if PathBuf::from(&self.output)
+            .extension()
+            .unwrap_or_default()
+            .to_string_lossy()
+            != "mkv"
+        {
             bail!("File extension is not '.mkv'. Currently only matroska / '.mkv' files are supported")
         }
 

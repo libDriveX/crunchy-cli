@@ -79,4 +79,4 @@ jobs:
           name: "[Linux] crunchy-cli v1"
           draft: true
           prerelease: false
-          files: crunchy_linux
+          files: ./target/${{ matrix.toolchain }}/release/crunchy-cli${{ matrix.ext }}
